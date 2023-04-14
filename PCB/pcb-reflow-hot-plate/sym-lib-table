@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "pcb-reflow-hot-plate")(type "KiCad")(uri "${KIPRJMOD}/pcb-reflow-hot-plate.kicad_sym")(options "")(descr ""))
+)
