@@ -48,10 +48,22 @@ Its all packaged in a slim, rectangular 3D printed case that exposes the hot pla
 
 The PCB is designed in KiCAD. Its a 2-layer design and it contains everything needed to run the hot plate with a single mains input. The USB-C port provides power to the DC section and allows for programming the ESP32-C3 microcontroller. The OLED display is on a separate daughter board and mounted using M2 standoffs. A standard 0.96" OLED display module should work although there is some variation in the models avaiable. More information regarding that coming soon. 
 
-Version 1.1:
+### Version 1.1:
 
 - [BOM](PCB/pcb-reflow-hot-plate/bom/pcb-reflow-hot-plate_1.1.html)
 - [Gerber](PCB/pcb-reflow-hot-plate/output/pcb-reflow-hot-plate_Rev1.1.zip)
+
+### Revision History
+
+- Rev 1.0
+    - Initial design
+- Rev 1.1
+    - AC-DC converter changed to HLK-5M05
+    - SSR changed to popular OMRON compatible footprint
+    - OLED display module moved to center align with buttons
+    - SSR supply changed to +5V
+    - AC in connector mounting peg holes increased in size
+    - Minor silk screen updates
 
 <img src="https://i.ibb.co/8XnHh54/pcb-reflow-hot-plate.png" width="40%"></a>
 <img src="https://i.ibb.co/NC9FkzB/Screenshot-2023-04-15-225138.png" width="40%"></a>

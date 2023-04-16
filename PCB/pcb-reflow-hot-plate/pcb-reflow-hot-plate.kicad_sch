@@ -6183,10 +6183,10 @@
     (pin "B6" (uuid 7aa332a5-2e0f-44b2-9a45-fe12ff80bf4b))
     (pin "B7" (uuid 866a9a51-2dfc-4007-b316-317769e3f2de))
     (pin "B8" (uuid 5cee7e08-4349-43f0-a2bf-11af28a4d109))
-    (pin "MP" (uuid c9b4ac54-f9a9-4721-933d-a27c24ab9d72))
-    (pin "MP" (uuid c9b4ac54-f9a9-4721-933d-a27c24ab9d72))
-    (pin "MP" (uuid c9b4ac54-f9a9-4721-933d-a27c24ab9d72))
-    (pin "MP" (uuid c9b4ac54-f9a9-4721-933d-a27c24ab9d72))
+    (pin "MP" (uuid c9b4ac54-f9a9-4721-933d-a27c24ab9d75))
+    (pin "MP" (uuid c9b4ac54-f9a9-4721-933d-a27c24ab9d75))
+    (pin "MP" (uuid c9b4ac54-f9a9-4721-933d-a27c24ab9d75))
+    (pin "MP" (uuid c9b4ac54-f9a9-4721-933d-a27c24ab9d75))
     (instances
       (project "pcb-reflow-hot-plate"
         (path "/4739d1ce-bb3f-4c62-a432-67b28e4047b9"
