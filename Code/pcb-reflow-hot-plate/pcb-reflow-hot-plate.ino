@@ -16,6 +16,9 @@
   *   - Add usb plug in/mode detection
   *   - Add timed pop-up alert support
   *   - Add scroll bar for all menus
+  *   - Add maximum heat/reflow time as a setting
+  *   - Add option to change profile name
+  *   - PWM smooth output doesnt go to zero at the end of reflow
   */
 
 #include "MAX6675.h"
