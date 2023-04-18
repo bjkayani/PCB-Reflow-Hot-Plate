@@ -304,6 +304,11 @@ void showHeat(int on_time){
     u8g2_for_adafruit_gfx.setForegroundColor(WHITE);
     u8g2_for_adafruit_gfx.setCursor(6, 58);
     u8g2_for_adafruit_gfx.print("Off");
+
+    if(on_time > heat_timeout){
+      u8g2_for_adafruit_gfx.setCursor(45, 58);
+      u8g2_for_adafruit_gfx.print("Timeout");
+    }
   }
 
   display.display();

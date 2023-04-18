@@ -10,6 +10,9 @@
  */
 void updateSettings(){
   preferences.putInt("buzzer", setting_items[SETTINGS_BUZZER].set_value_index);
+  preferences.putInt("timeout", setting_items[SETTINGS_TIMEOUT].set_value_index);
+
+  heat_timeout = setting_items[SETTINGS_TIMEOUT].values[setting_items[SETTINGS_TIMEOUT].set_value_index];
 }
 
 /**
@@ -18,6 +21,7 @@ void updateSettings(){
  */
 void initSettings(){
   setting_items[SETTINGS_BUZZER].set_value_index = preferences.getInt("buzzer", 0);
+  setting_items[SETTINGS_TIMEOUT].set_value_index = preferences.getInt("timeout", 0);
   updateSettings();
 }
 

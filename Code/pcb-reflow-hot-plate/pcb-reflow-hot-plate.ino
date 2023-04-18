@@ -83,7 +83,7 @@
 #define START_UP_BEEP         200 
 
 #define MAX_REFLOW_TIME_S     600
-#define NUM_SETTING_MAX       5
+#define NUM_SETTING_MAX       20
 #define START_UP_SPLASH_TIME  2000
 #define MAX_DISPLAY_LENGTH    20 
 
@@ -163,6 +163,7 @@ enum buttons_state_t {
 enum settings_state_t {
   SETTINGS_BUZZER = 0,
   SETTINGS_RESET,
+  SETTINGS_TIMEOUT,
   
   SETTINGS_NUM_ITEMS  
 };
@@ -197,6 +198,14 @@ struct settings_item_t{
   int values[NUM_SETTING_MAX]; // integer value associated with each option
   int num_options;  // total number of options
   int set_value_index; // the currently selected option index
+};
+
+// Struct to store a buzzer tone sequence
+struct buzzer_sequence_t{
+  int buzzer_on_time; // time in ms for buzzer to be on
+  int buzzer_off_time;  // time in ms for buzzer to be off
+  int num_of_beeps; // number of times to play the on-off sequence
+  bool enable_bypass; // play regradless of buzzer being disabled
 };
 
 // ---------- Constants ----------
@@ -237,6 +246,9 @@ float heat_set_temp = 0.0;
 unsigned long buzzer_on_time = 0;
 int current_buzzer_duration = 0;
 bool buzzer_on = false;
+buzzer_sequence_t cur_buzzer_seq;
+bool buzzer_seq_on = false;
+unsigned long buzzer_seq_on_time = 0;
 
 reflow_profile_t reflow_profile_array[NUM_PROFILE_MAX];    
 
@@ -267,8 +279,14 @@ pid_item_t pid_items[PID_NUM_ITEMS] = {
 
 settings_item_t setting_items[SETTINGS_NUM_ITEMS] = {
   {"Buzzer",  {"On", "Off"},  {1, 0}, 2, 0},
-  {"Reset",   {"", "Sure? ^"}, {0, 1}, 2, 0}
+  {"Reset",   {"", "Sure? ^"}, {0, 1}, 2, 0},
+  {"Timeout", {"10m", "9m", "8m", "7m", "6m", "5m"}, {600, 540, 480, 420, 360, 300}, 6, 0}
 };
+
+int heat_timeout = setting_items[SETTINGS_TIMEOUT].values[setting_items[SETTINGS_TIMEOUT].set_value_index];
+
+const buzzer_sequence_t buzzer_timeout_seq = {200, 200, 2, true};
+const buzzer_sequence_t buzzer_reflow_complete_seq = {200, 200, 2, true};
 
 // ---------- Control Functions ----------
 
@@ -374,6 +392,7 @@ void reflow(){
       reflow_done = true;  
       reflow_active = false; 
       setHeaterPWM(0);
+      buzzerSeq(buzzer_reflow_complete_seq);
       debugprintln("reflow completed"); 
     }
 
@@ -468,6 +487,12 @@ void heat(){
       // Run the PID step and set heater PWM
       pid_pwm_dc = pidStep(heat_set_temp, HEAT);
       setHeaterPWM(pid_pwm_dc);
+    }
+
+    if(heat_time_s > heat_timeout && heat_active){
+      heat_active = false;
+      setHeaterPWM(0);
+      buzzerSeq(buzzer_timeout_seq);
     }
 
     /** 

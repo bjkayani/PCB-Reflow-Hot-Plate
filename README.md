@@ -6,7 +6,7 @@ This project is a work in progress and various elements of it are continually im
 
 <br>
 
-<center><img src="https://i.ibb.co/6Y3WBQz/IMG-2905.jpg" width="50%"></a></center>
+<img src="https://i.ibb.co/6Y3WBQz/IMG-2905.jpg" width="80%"></a>
 
 <br>
 
