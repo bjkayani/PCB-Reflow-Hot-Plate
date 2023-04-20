@@ -98,8 +98,9 @@ The latest STL and design files can be found in the CAD folder. The assembly is 
 ### Compatibility Table
 
 | PCB (HW) | OLED Module | Code (FW) | CAD |
-| :---: | :---: | :---: | :---: |
-| Rev 1.0 | 25.2x26mm <br>[ AliExpress Link](https://www.aliexpress.us/item/2251832644208699.html?spm=a2g0o.order_list.order_list_main.11.21ef1802tOmkk3&gatewayAdapt=glo2usa4itemAdapt&_randl_shipto=US#nav-specification) | Rev 1.0 | Housing Top v3 <br> Housing Base v7 |
+| :---: | :---------: | :---: | :---: |
+| Rev 1.0 | SSD1306 0.96" 25.2x26mm <br> [AliExpress Link](https://www.aliexpress.us/item/2251832644208699.html?spm=a2g0o.order_list.order_list_main.11.21ef1802tOmkk3&gatewayAdapt=glo2usa4itemAdapt&_randl_shipto=US#nav-specification) | Rev 1.0 | Housing Top v4 <br> Housing Base v7 |
+| Rev 1.1 |  SSD1306 0.96" 27.6x27.6mm <br> [Amazon Link](https://amzn.to/43KL0ey) |  | Housing Top v5 <br> Housing Base v7 |
 
 <br>
 

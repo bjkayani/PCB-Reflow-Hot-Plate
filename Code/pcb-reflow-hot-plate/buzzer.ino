@@ -49,6 +49,7 @@ void buzzerSeq(buzzer_sequence_t buzzer_seq){
   cur_buzzer_seq = buzzer_seq;
   buzzer_seq_on_time = millis();
   buzzer_seq_on = true;
+  buzzer_seq_index = 1;
 }
 
 /**
@@ -63,7 +64,6 @@ void buzzerLoop(){
   static unsigned int beep_off_time_min = 0;
   static unsigned int beep_off_time_max = 0;
   static unsigned int beep_seq_time_max = 0;
-  static unsigned int buzzer_seq_index = 1;
   int enabled = setting_items[SETTINGS_BUZZER].values[setting_items[SETTINGS_BUZZER].set_value_index];
 
   // Play buzzer sequence
@@ -90,6 +90,7 @@ void buzzerLoop(){
       if(buzzer_time_delta > beep_seq_time_max){
         buzzer_seq_on = false;
         buzzer_seq_index = 1;
+        digitalWrite(BUZZER_PIN, LOW);
       }
     }
   } else if(enabled){ // play single beep

@@ -15,5 +15,6 @@ _autosave-*
 fp-info-cache
 *.log
 ~$*
+*auto_saved*
 
 Images

@@ -4,38 +4,36 @@
  * heater.ino 
  * Heater PWM and PID step function
  * 
- * TODO: Bound duty cycle between upper and lower bound
- * TODO: Add thermal run away sensing
- * TODO: Add slow heatup sensing
  * TODO: Add temperature discontinuity sensing
  */
 
+
+
 /**
- * @brief Set and manage heater PWM
+ * @brief Manage heater PWM 
  * This function needs to be run in a fast loop
- * Manual PWM imeplented due to super slow requirement of the SSR
- * @param duty_cycle PWM duty cycle (0 - 100)
+ * Manual PWM implemented due to super slow requirement of the SSR
  */
-void setHeaterPWM(int duty_cycle){
+void heaterPwmLoop(){
   static unsigned long last_on_time = 0;
   static unsigned long last_off_time = 0;
   static bool heater_pwm_on = false;
   static int on_time = 0;
   static int off_time = 0;
 
-  duty_cycle = constrain(duty_cycle, 0, 100);
+  heater_pwm = constrain(heater_pwm, 0, PWM_MAX);
 
   // Calculate on time and off time for given duty cycle
-  on_time = ( PWM_PERIOD * duty_cycle ) / 100;
-  off_time = ( PWM_PERIOD * (100 - duty_cycle) ) / 100;
+  on_time = ( PWM_PERIOD * heater_pwm ) / PWM_MAX;
+  off_time = ( PWM_PERIOD * (PWM_MAX - heater_pwm) ) / PWM_MAX;
 
   if(heat_active || reflow_active){
 
-    if(duty_cycle == 100){ // Full on for 100% duty cycle
+    if(heater_pwm == PWM_MAX){ // Full on for 100% duty cycle
       digitalWrite(SSR_PIN, HIGH);
       heater_pwm_on = true;
       last_on_time = millis();
-    } else if(duty_cycle == 0){ // Full off for 0% duty cycle
+    } else if(heater_pwm == 0){ // Full off for 0% duty cycle
       digitalWrite(SSR_PIN, LOW);
       heater_pwm_on = false;
       last_off_time = millis();
@@ -63,7 +61,7 @@ void setHeaterPWM(int duty_cycle){
  * @brief PID Step function for heater PWM
  * This functions needs to be called in a loop
  * It will calculate next PWM value using PID control
- * PID calculation is done at PWM_STEP_DELAY gaps
+ * PID calculation is done at PID_STEP_INTERVAL gaps
  * @param set_temp target temperature
  * @param mode reflow or heat mode
  * @return int PWM value from PID algorithm
@@ -72,8 +70,8 @@ void setHeaterPWM(int duty_cycle){
  */
 int pidStep(float set_temp, int mode){
   // Time tracking variables
-  static unsigned long prev_time = 0;
-  static unsigned long prev_deriv_time = 0;
+  static unsigned long last_time = 0;
+  static unsigned long last_deriv_time = 0;
   static unsigned long cur_time = 0;
   static unsigned long delta_time_ms = 0;
   static unsigned long delta_deriv_time_ms = 0;
@@ -95,6 +93,8 @@ int pidStep(float set_temp, int mode){
   static int ind = 0;
   static float sum = 0.0;
 
+  static int heater_check_last_temp = 0;
+
   // Update PID parameters from struct based on selected mode
   if(mode == HEAT){
     Kp = pid_items[PID_KP].val;
@@ -108,10 +108,10 @@ int pidStep(float set_temp, int mode){
   
   // Calculate the time gap between now and the last step
   cur_time = millis();
-  delta_time_ms = cur_time - prev_time;
+  delta_time_ms = cur_time - last_time;
 
   // Reset the calculation if function called after long delay
-  if(delta_time_ms > (2 * PWM_STEP_DELAY)){
+  if(delta_time_ms > (2 * PID_STEP_INTERVAL)){
     debugprintln("pid reset");
 
     // Reset tracking variables
@@ -124,17 +124,17 @@ int pidStep(float set_temp, int mode){
     
     sum = 0;
     // Prepopulate the moving filter array for instant ramp
-    pid_output = (Kp * (set_temp - cur_temp)); // use proportional error only
+    pid_output = constrain((Kp * (set_temp - cur_temp)), 0, PWM_MAX); // use proportional error only
     for(int i = 0; i < PID_FILTER_SIZE; i++){
       pid_output_array[i] = pid_output; // populate the array
       sum += pid_output; // add up the sum
     }
     ind = 0;
     pid_output_smooth = pid_output;
-    prev_time = cur_time;
+    last_time = cur_time;
 
-  // Run PID calculation every PWM_STEP_DELAY
-  } else if(delta_time_ms > PWM_STEP_DELAY){
+  // Run PID calculation every PID_STEP_INTERVAL
+  } else if(delta_time_ms > PID_STEP_INTERVAL){
 
     delta_time_s = (float)delta_time_ms / 1000.0; // time since last cal in seconds (float)
 
@@ -149,13 +149,13 @@ int pidStep(float set_temp, int mode){
     }
     
     // Calculate time since last derivative calculation
-    delta_deriv_time_ms = cur_time - prev_deriv_time;
+    delta_deriv_time_ms = cur_time - last_deriv_time;
     delta_deriv_time_s = (float)delta_deriv_time_ms / 1000.0;
 
-    // Calculate derivative every DERIV_TIME_STEP
-    if(delta_deriv_time_ms > DERIV_TIME_STEP){
+    // Calculate derivative every DERIV_CALC_INTERVAL
+    if(delta_deriv_time_ms > DERIV_CALC_INTERVAL){
       deriv = (temp_error - prev_error) / delta_deriv_time_s;
-      prev_deriv_time = cur_time;
+      last_deriv_time = cur_time;
       prev_error = temp_error;
     }
     
@@ -170,23 +170,27 @@ int pidStep(float set_temp, int mode){
     ind = (ind + 1) % PID_FILTER_SIZE;
     pid_output_smooth = sum / PID_FILTER_SIZE;
 
-    prev_time = cur_time;
+    last_time = cur_time;
     
     debugprint(set_temp);
     debugprint(",");
     debugprint(cur_temp);
     debugprint(",");
-    debugprint(pid_output);
-    debugprint(",");
+    // debugprint(pid_output);
+    // debugprint(",");
     debugprint(pid_output_smooth);
-    debugprint(",");
-    debugprint(prop);
-    debugprint(",");
-    debugprint(integ);
-    debugprint(",");
-    debugprintln(deriv);
+    // debugprint(",");
+    // debugprint(prop);
+    // debugprint(",");
+    // debugprint(integ);
+    // debugprint(",");
+    // debugprintln(deriv);
+    debugprint("\n");
   }
 
-  return round(pid_output_smooth);
+  pid_output_smooth = constrain(pid_output_smooth, 0, PWM_MAX);
+  pid_output_smooth = round(pid_output_smooth);
+
+  return pid_output_smooth;
 }
 

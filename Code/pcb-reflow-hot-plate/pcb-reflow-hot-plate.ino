@@ -12,14 +12,12 @@
   *   - Add option to print variables over serial
   *   - Settings menu: ( WiFi, BLE, USB Serial)
   *   - Add multiple temp sensor support
-  *   - Add temp related safety features
   *   - Add usb plug in/mode detection
   *   - Add timed pop-up alert support
   *   - Add scroll bar for all menus
-  *   - Add maximum heat/reflow time as a setting
   *   - Add option to change profile name
-  *   - PWM smooth output doesnt go to zero at the end of reflow
   */
+
 
 #include "MAX6675.h"
 #include <Wire.h>
@@ -55,7 +53,7 @@
 #define BUTTON_PRESS_TIME     100
 // Temperature
 #define TEMP_FILTER_WINDOW    10 // temp moving average window size
-#define TEMP_UPDATE_DELAY     500 // delay between temp reads
+#define TEMP_UPDATE_INTERVAL  500 // temperature read interval in mS
 #define MIN_TEMP              30
 #define MAX_TEMP              260
 // Setting change steps
@@ -65,27 +63,34 @@
 #define REFLOW_TEMP_STEP      10
 // SSR Relay PWM
 #define PWM_FREQ              1 // in Hertz
-#define PWM_PERIOD            1000*(1/PWM_FREQ) // Period in ms
+#define PWM_PERIOD            (1000*(1/PWM_FREQ)) // Period in ms
 #define PWM_MAX               100 // value for 100% PWM duty cycle
-#define PWM_STEP_DELAY        250 // delay for PWM update
 // Reflow profile
 #define NUM_PROFILE_MAX       5 // stored profile capacity
 #define PROFILE_MAX_POINTS    9  // time:Temperature point in each profile
 // PID
 #define PID_KD_PREGAIN        10.0
-#define DERIV_TIME_STEP       1000 // derivative calc delay for smoother response
 #define INTEG_ACTIVE_THRESH   80  // integral calc threshold to prevent windup
 #define PID_FILTER_SIZE       10 // pid moving average window size
+#define PID_STEP_INTERVAL     250 // PID update interval in mS
+#define DERIV_CALC_INTERVAL   1000 // derivative calc interval for smoother response
 // Buzzer
-#define CLICK_BEEP            10   
-#define SCROLL_BEEP           5
-#define SCROLL_LIMIT_BEEP     30
+#define CLICK_BEEP            50   
+#define SCROLL_BEEP           20
+#define SCROLL_LIMIT_BEEP     100
 #define START_UP_BEEP         200 
-
+// Misc
 #define MAX_REFLOW_TIME_S     600
 #define NUM_SETTING_MAX       20
 #define START_UP_SPLASH_TIME  2000
 #define MAX_DISPLAY_LENGTH    20 
+// Error checking
+#define BUFFER_TIME               30 // buffer time in seconds
+#define BUFFER_SIZE               ((BUFFER_TIME * 1000) / ERROR_CHECK_INTERVAL)
+#define ERROR_CHECK_INTERVAL      1000  // error checking interval in mS
+#define HEAT_UP_MIN_TEMP_RISE     10  // minimal expected temp rise in BUFFER_TIME
+#define HEAT_UP_CHECK_TEMP_LIMIT  200
+#define HIGHTEMP_ERROR_LIMIT      280
 
 // Switch between standard serial and usb serial
 #define USB_DEBUG
@@ -225,30 +230,47 @@ const int left_tick_perc_array[4] = {20, 40, 60, 80};
 
 // ---------- Variables ----------
 
+// Buttons
 volatile single_button_state_t up_button_state = BUTTON_NO_ACTION;
 volatile single_button_state_t ok_button_state = BUTTON_NO_ACTION;
 volatile single_button_state_t dn_button_state = BUTTON_NO_ACTION;
 volatile unsigned long up_state_change_time = 0;
 volatile unsigned long ok_state_change_time = 0;
 volatile unsigned long dn_state_change_time = 0;
-
-int selected_profile = 0; 
+// System
 float cur_temp = 0;
-char print_buffer[20];
-bool heat_active = false;
+int heater_pwm = 0;
+// Reflow
 bool reflow_active = false;
+int selected_profile = 0; 
 bool reflow_done = false;
 bool reflow_paused = false;
 int reflow_duration_s = 0;
+// Heat
+bool heat_active = false;
+float heat_set_temp = 0.0;
+// Graph
 int graph_time_min = 0;
 int graph_time_max = 400;
-float heat_set_temp = 0.0;
+// Buzzer
 unsigned long buzzer_on_time = 0;
 int current_buzzer_duration = 0;
 bool buzzer_on = false;
 buzzer_sequence_t cur_buzzer_seq;
 bool buzzer_seq_on = false;
 unsigned long buzzer_seq_on_time = 0;
+int buzzer_seq_index = 1;
+// Errors
+bool high_temp_error = false;
+bool heat_up_error = false;
+// Circular buffer
+float temp_buffer[BUFFER_SIZE];
+int pwm_buffer[BUFFER_SIZE];
+int buffer_head = 0;
+int buffer_tail = 0;
+int buffer_count = 0;
+
+char print_buffer[20];
 
 reflow_profile_t reflow_profile_array[NUM_PROFILE_MAX];    
 
@@ -287,6 +309,8 @@ int heat_timeout = setting_items[SETTINGS_TIMEOUT].values[setting_items[SETTINGS
 
 const buzzer_sequence_t buzzer_timeout_seq = {200, 200, 2, true};
 const buzzer_sequence_t buzzer_reflow_complete_seq = {200, 200, 2, true};
+const buzzer_sequence_t buzzer_high_temp_error_seq = {500, 500, 50, true};
+const buzzer_sequence_t buzzer_heat_up_error_seq = {200, 200, 10, true};
 
 // ---------- Control Functions ----------
 
@@ -358,8 +382,6 @@ void mainMenu(){
 /**
  * @brief Reflow control function
  * This mode runs predefined reflow profiles
- * 
- * TODO: Improve beep behavior
  */
 void reflow(){
 
@@ -369,7 +391,6 @@ void reflow(){
   static unsigned long reflow_on_time = 0;
   static unsigned int reflow_progress = 0; // percentage completed
   static float reflow_set_temp = 0.0;
-  static int pid_pwm_dc = 0;
 
   while(1){
     cur_temp = readTempSensor();
@@ -377,25 +398,37 @@ void reflow(){
     reflow_duration_s = getReflowMaxTime();
 
     // Enter if reflow is actively running
-    if(reflow_active && !reflow_paused){
+    if(reflow_active && !reflow_paused && !high_temp_error){
       reflow_time_ms = (millis() - reflow_on_time) + reflow_pre_pause_time_ms; // get time elapsed 
       reflow_time_s = reflow_time_ms / 1000;
       reflow_progress = (reflow_time_s * 100) / reflow_duration_s;
       // Get the target temp from profile, run the pid step and set heater PWM
       reflow_set_temp = getReflowTemp(reflow_profile_array[selected_profile], reflow_time_s);
-      pid_pwm_dc = pidStep(reflow_set_temp, REFLOW);
-      setHeaterPWM(pid_pwm_dc);
+      heater_pwm = pidStep(reflow_set_temp, REFLOW);
     }
 
     // Enter if reflow is completed
     if(reflow_active && reflow_progress >= 100){
       reflow_done = true;  
       reflow_active = false; 
-      setHeaterPWM(0);
+      heater_pwm = 0;
       buzzerSeq(buzzer_reflow_complete_seq);
       debugprintln("reflow completed"); 
     }
 
+    // Handle high temperature error
+    if(high_temp_error && reflow_active){
+      reflow_active = false;
+      heater_pwm = 0;
+      buzzerSeq(buzzer_high_temp_error_seq);  
+    }
+
+    // Handle heater error
+    if(heat_up_error && reflow_active){
+      reflow_active = false;
+      heater_pwm = 0;
+      buzzerSeq(buzzer_heat_up_error_seq); 
+    }
 
     /** 
     * Reflow button control
@@ -406,22 +439,24 @@ void reflow(){
     */        
     switch(cur_button){
       case BUTTONS_UP_PRESS:
-        if(!reflow_active){
+        if(!reflow_active && !reflow_done && !heat_up_error && !high_temp_error){
           if(--selected_profile < 0){
             selected_profile = 0;
             buzzerBeep(SCROLL_LIMIT_BEEP);
+          } else {
+            buzzerBeep(SCROLL_BEEP);
           }
-          buzzerBeep(SCROLL_BEEP);
           updateMiscParams();
         }
         break;
       case BUTTONS_DN_PRESS:
-        if(!reflow_active){
+        if(!reflow_active && !reflow_done && !heat_up_error && !high_temp_error){
           if(++selected_profile >= NUM_PROFILE_MAX){
             selected_profile = NUM_PROFILE_MAX - 1;
             buzzerBeep(SCROLL_LIMIT_BEEP);
-          }
-          buzzerBeep(SCROLL_BEEP);
+          } else {
+            buzzerBeep(SCROLL_BEEP);
+          } 
           updateMiscParams();
         }
         break;
@@ -430,12 +465,12 @@ void reflow(){
         if(reflow_active && !reflow_paused) { // pause reflow if its running
           reflow_paused = true;
           reflow_pre_pause_time_ms = reflow_time_ms;
-          setHeaterPWM(0);
+          heater_pwm = 0;
           debugprintln("reflow paused");
         } else if (reflow_active && reflow_paused){ // resume reflow if paused
           reflow_paused = false; 
           reflow_on_time = millis();
-        } else if (!reflow_done) {  // start reflow
+        } else if (!reflow_done && !heat_up_error && !high_temp_error) {  // start reflow
           reflow_active = true;
           reflow_on_time = millis();
           reflow_time_s = 0;
@@ -454,14 +489,19 @@ void reflow(){
       reflow_active = false;
       reflow_paused = false;
       reflow_done = false;
+      high_temp_error = false;
+      heat_up_error = false;
       reflow_progress = 0;
-      setHeaterPWM(0);
+      heater_pwm = 0;
+      heaterPwmLoop();  // called to set PWM before exiting
       debugprintln("reflow stopped");
       break;
     } 
 
     showReflow(reflow_set_temp, reflow_time_s, reflow_progress);
     buzzerLoop();
+    errorCheckLoop(reflow_set_temp, reflow_active);
+    heaterPwmLoop();
   }
 }
 
@@ -474,7 +514,6 @@ void heat(){
   static unsigned int heat_time_ms = 0;
   static unsigned int heat_time_s = 0;
   static unsigned long heat_on_time = 0;
-  static int pid_pwm_dc = 0;
 
   while(1){
     cur_temp = readTempSensor();
@@ -485,14 +524,28 @@ void heat(){
       heat_time_ms = millis() - heat_on_time;
       heat_time_s = heat_time_ms / 1000;
       // Run the PID step and set heater PWM
-      pid_pwm_dc = pidStep(heat_set_temp, HEAT);
-      setHeaterPWM(pid_pwm_dc);
+      heater_pwm = pidStep(heat_set_temp, HEAT);
     }
 
+    // Heating timed out
     if(heat_time_s > heat_timeout && heat_active){
       heat_active = false;
-      setHeaterPWM(0);
+      heater_pwm = 0;
       buzzerSeq(buzzer_timeout_seq);
+    }
+
+    // Handle high temperature error
+    if(high_temp_error && heat_active){
+      heat_active = false;
+      heater_pwm = 0;
+      buzzerSeq(buzzer_high_temp_error_seq);  
+    }
+
+    // Handle heater error
+    if(heat_up_error && heat_active){
+      heat_active = false;
+      heater_pwm = 0;
+      buzzerSeq(buzzer_heat_up_error_seq); 
     }
 
     /** 
@@ -508,8 +561,9 @@ void heat(){
         if(heat_set_temp > MAX_TEMP){
           heat_set_temp = MAX_TEMP;
           buzzerBeep(SCROLL_LIMIT_BEEP);
+        } else {
+          buzzerBeep(SCROLL_BEEP);
         }
-        buzzerBeep(SCROLL_BEEP);
         updateMiscParams();
         break;
       case BUTTONS_DN_PRESS:
@@ -517,17 +571,18 @@ void heat(){
         if(heat_set_temp < MIN_TEMP){
           heat_set_temp = MIN_TEMP;
           buzzerBeep(SCROLL_LIMIT_BEEP);
+        } else {
+          buzzerBeep(SCROLL_BEEP);
         }
-        buzzerBeep(SCROLL_BEEP);
         updateMiscParams();
         break;
       case BUTTONS_OK_PRESS:
         buzzerBeep(CLICK_BEEP);
         if(heat_active) {
           heat_active = false;
-          setHeaterPWM(0);
+          heater_pwm = 0;
           debugprintln("heating stopped");
-        } else {
+        } else if (!heat_up_error && !high_temp_error) {
           heat_active = true;
           heat_on_time = millis();
           debugprintln("heating started");
@@ -539,13 +594,18 @@ void heat(){
 
     if(cur_button == BUTTONS_UPDN_PRESS){
       heat_active = false;
-      setHeaterPWM(0);
+      high_temp_error = false;
+      heat_up_error = false;
+      heater_pwm = 0;
+      heaterPwmLoop();  // called to set PWM before exiting
       debugprintln("heating stopped");
       break;
     } 
 
     showHeat(heat_time_s);
     buzzerLoop();
+    errorCheckLoop(heat_set_temp, heat_active);
+    heaterPwmLoop();
   }
 }
 
@@ -570,15 +630,17 @@ void parameterMenu(){
         if(--select_index < 0){
           select_index = 0;
           buzzerBeep(SCROLL_LIMIT_BEEP);
+        } else {
+          buzzerBeep(SCROLL_BEEP);
         }
-        buzzerBeep(SCROLL_BEEP);
         break;
       case BUTTONS_DN_PRESS:
         if(++select_index >= PARAMETER_NUM_ITEMS){
           select_index = PARAMETER_NUM_ITEMS - 1;
           buzzerBeep(SCROLL_LIMIT_BEEP);
+        } else {
+          buzzerBeep(SCROLL_BEEP);
         }
-        buzzerBeep(SCROLL_BEEP);
         break;
       case BUTTONS_OK_PRESS:
         buzzerBeepBlocking(CLICK_BEEP);
@@ -635,8 +697,9 @@ void pidParameter(){
           if(--select_index < 0){
             select_index = 0;
             buzzerBeep(SCROLL_LIMIT_BEEP);
+          } else {
+            buzzerBeep(SCROLL_BEEP);
           }
-          buzzerBeep(SCROLL_BEEP);
         }
         break;
       case BUTTONS_DN_PRESS:
@@ -647,8 +710,9 @@ void pidParameter(){
           if(++select_index >= PID_NUM_ITEMS){
             select_index = PID_NUM_ITEMS - 1;
             buzzerBeep(SCROLL_LIMIT_BEEP);
+          } else {
+            buzzerBeep(SCROLL_BEEP);
           }
-          buzzerBeep(SCROLL_BEEP);
         }
         break;
       case BUTTONS_OK_PRESS:
@@ -713,8 +777,9 @@ void profileParameter(){
           if(--select_index < 0){
             select_index = 0;
             buzzerBeep(SCROLL_LIMIT_BEEP);
+          } else {
+            buzzerBeep(SCROLL_BEEP);
           }
-          buzzerBeep(SCROLL_BEEP);
         }
         break;
         break;
@@ -736,8 +801,9 @@ void profileParameter(){
           if(++select_index >= (PROFILE_MAX_POINTS + 1)  && !selected){
             select_index = PROFILE_MAX_POINTS;
             buzzerBeep(SCROLL_LIMIT_BEEP);
+          } else {
+            buzzerBeep(SCROLL_BEEP);
           }
-          buzzerBeep(SCROLL_BEEP);
         }
         updateReflowProfile(selected_profile);
         break;
@@ -809,8 +875,9 @@ void settings(){
           if(--select_index < 0){
             select_index = 0;
             buzzerBeep(SCROLL_LIMIT_BEEP);
+          } else {
+            buzzerBeep(SCROLL_BEEP);
           }
-          buzzerBeep(SCROLL_BEEP);
         }
         break;
       case BUTTONS_DN_PRESS:
@@ -825,8 +892,9 @@ void settings(){
           if(++select_index >= SETTINGS_NUM_ITEMS){
             select_index = SETTINGS_NUM_ITEMS - 1;
             buzzerBeep(SCROLL_LIMIT_BEEP);
+          } else {
+            buzzerBeep(SCROLL_BEEP);
           }
-          buzzerBeep(SCROLL_BEEP);
         }
         break;
       case BUTTONS_OK_PRESS:

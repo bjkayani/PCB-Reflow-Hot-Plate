@@ -3170,7 +3170,7 @@
     )
   )
 
-  (text_box "Rev 1.0 Notes\n- Change buttons to smaller and longer\n- Slightly englarge mounting pegs for AC connector\n- Separate reset and boot button\n- See if you can find a smaller buzzer\n- Add thermocouple polarity\n- Change buzzer and ssr supply to +5v\n- Switch to HiLink supply and Panasonic relay. \n- Move OLED to be centered\n\n"
+  (text_box "Notes\nRev 1.0\n- Change buttons to smaller and longer\n- Slightly englarge mounting pegs for AC connector\n- Separate reset and boot button\n- See if you can find a smaller buzzer\n- Add thermocouple polarity\n- Change buzzer and ssr supply to +5v\n- Switch to HiLink supply and Panasonic relay. \n- Move OLED to be centered\nRev 1.1 \n- AC connector mounting pegs were not fixed\n- Add ESD protection\n- Change display footprint to match latest displays\n- Add AC fuse\n"
     (at 224.79 90.17 0) (size 54.61 41.91)
     (stroke (width 0) (type default))
     (fill (type color) (color 255 255 194 1))

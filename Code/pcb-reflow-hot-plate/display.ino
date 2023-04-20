@@ -243,12 +243,16 @@ void showReflow(float set_temp, int reflow_time, int progress){
     //Display done or selected profile name 
     if(reflow_done){
       u8g2_for_adafruit_gfx.setCursor(5, 60);
-      sprintf(print_buffer, "Done");     
+      u8g2_for_adafruit_gfx.print("Done");  
+    } else if (heat_up_error || high_temp_error) {
+      u8g2_for_adafruit_gfx.setCursor(5, 60);
+      u8g2_for_adafruit_gfx.print("Error");
     } else {
       u8g2_for_adafruit_gfx.setCursor(5, 60);
       sprintf(print_buffer, "%s", reflow_profile_array[selected_profile].display_name);
+      u8g2_for_adafruit_gfx.print(print_buffer); 
     }
-    u8g2_for_adafruit_gfx.print(print_buffer); 
+    
   }
 
   display.display();
@@ -308,6 +312,9 @@ void showHeat(int on_time){
     if(on_time > heat_timeout){
       u8g2_for_adafruit_gfx.setCursor(45, 58);
       u8g2_for_adafruit_gfx.print("Timeout");
+    } else if (heat_up_error || high_temp_error){
+      u8g2_for_adafruit_gfx.setCursor(45, 58);
+      u8g2_for_adafruit_gfx.print("Error");
     }
   }
 
@@ -534,7 +541,7 @@ void showSplashScreen(int display_time){
 /**
  * @brief About screen display function
  * TODO: Update or create website
- * TODO: Add more info and make is scrollable
+ * TODO: Add more info and make it scrollable
  */
 void showAbout(){
   display.clearDisplay();
