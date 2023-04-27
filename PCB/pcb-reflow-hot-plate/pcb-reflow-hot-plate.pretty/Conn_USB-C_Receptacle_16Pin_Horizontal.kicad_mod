@@ -43,11 +43,11 @@
   (pad "B6" smd rect (at 0.75 -3.6) (size 0.3 1.2) (layers "F.Cu" "F.Paste" "F.Mask") (tstamp ad4e56d7-cff2-4846-936e-0b87033d0b71))
   (pad "B7" smd rect (at -0.75 -3.6) (size 0.3 1.2) (layers "F.Cu" "F.Paste" "F.Mask") (tstamp 56203997-050f-48d4-a763-fb628dd58c71))
   (pad "B8" smd rect (at -1.75 -3.6) (size 0.3 1.2) (layers "F.Cu" "F.Paste" "F.Mask") (tstamp ffba42ba-d7e2-44d0-8c49-f05b8f8eeb36))
-  (pad "MP" thru_hole oval (at -4.32 -3) (size 1 2.1) (drill oval 0.6 1.7) (layers "*.Cu" "*.Mask") (tstamp 1dbdd3f9-c319-4213-9e1e-6e8dc0a54393))
-  (pad "MP" thru_hole oval (at -4.32 1.18) (size 1 1.8) (drill oval 0.6 1.4) (layers "*.Cu" "*.Mask") (tstamp ed615716-1dbc-45fd-9246-31e77fcf5fab))
-  (pad "MP" thru_hole oval (at 4.32 -3) (size 1 2.1) (drill oval 0.6 1.7) (layers "*.Cu" "*.Mask") (tstamp 98844358-d5f8-4877-85aa-718c8e307f5c))
-  (pad "MP" thru_hole oval (at 4.32 1.18) (size 1 1.8) (drill oval 0.6 1.4) (layers "*.Cu" "*.Mask") (tstamp 668a2edd-71aa-4d55-aa23-5772ae44dff4))
-  (model "${KIPRJMOD}/3D/C12402012-3.stp"
+  (pad "MP" thru_hole oval (at -4.32 -3) (size 1 2.1) (drill oval 0.6 1.7) (layers "*.Cu" "*.Mask" "F.Paste") (tstamp 1dbdd3f9-c319-4213-9e1e-6e8dc0a54393))
+  (pad "MP" thru_hole oval (at -4.32 1.18) (size 1 1.8) (drill oval 0.6 1.4) (layers "*.Cu" "*.Mask" "F.Paste") (tstamp ed615716-1dbc-45fd-9246-31e77fcf5fab))
+  (pad "MP" thru_hole oval (at 4.32 -3) (size 1 2.1) (drill oval 0.6 1.7) (layers "*.Cu" "*.Mask" "F.Paste") (tstamp 98844358-d5f8-4877-85aa-718c8e307f5c))
+  (pad "MP" thru_hole oval (at 4.32 1.18) (size 1 1.8) (drill oval 0.6 1.4) (layers "*.Cu" "*.Mask" "F.Paste") (tstamp 668a2edd-71aa-4d55-aa23-5772ae44dff4))
+  (model "${KIPRJMOD}/packages3D/C12402012-3.stp"
     (offset (xyz 40 1 1.6))
     (scale (xyz 1 1 1))
     (rotate (xyz -90 0 0))
