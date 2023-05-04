@@ -6,6 +6,7 @@ const int dataPin   = 7;
 const int clockPin  = 6;
 const int selectPin1 = 4;
 const int selectPin2 = 5;
+const int thermPin = 0;
 
 MAX6675 thermoCouple1;
 MAX6675 thermoCouple2;
@@ -25,6 +26,9 @@ void setup()
   mlx.writeEmissivity(1);
   Serial.print("Emissivity = "); 
   Serial.println(mlx.readEmissivity());
+
+  pinMode(thermPin, INPUT);
+  // analogSetPinAttenuation(thermPin, ADC_0db);
 }
 
 
@@ -43,6 +47,10 @@ void loop()
   Serial.print(",");
 
   Serial.print(mlx.readObjectTempC());
+
+  Serial.print(",");
+
+  Serial.print(analogReadMilliVolts(thermPin));
 
   Serial.println();
 

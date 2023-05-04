@@ -550,10 +550,10 @@ void showAbout(){
   u8g2_for_adafruit_gfx.setFont(u8g2_font_lastapprenticebold_tr);
   centeredText("PCB Reflow Hot Plate", 64, 20);
   u8g2_for_adafruit_gfx.setFont(u8g2_font_crox1hb_tf);
-  centeredText("Badar's Workshop", 64, 34);
-  centeredText("rhp.badar.tech", 64, 48);
+  sprintf(print_buffer, "MAC: %s", mac_address);
+  centeredText(print_buffer, 64, 40);
   sprintf(print_buffer, "HW: %1.1f  FW: %1.1f", HW_VERSION, FW_VERSION);
-  centeredText(print_buffer, 64, 64);
+  centeredText(print_buffer, 64, 60);
   display.display();
 }
 

@@ -35,14 +35,14 @@ float readTempSensor(){
     // Get instantanous temperature read
     if(!thermoCouple.read()){
       read_value = thermoCouple.getTemperature();
+    } else {
+      debugprintln("temp read error");
+      read_value = 999;
     }
 
     // Prepopulate the moving filter array for instant ramp
-    sum = 0;
-    for(int i = 0; i < TEMP_FILTER_WINDOW; i++){
-      read_array[i] = read_value; // populate the array
-      sum += read_value; // add up the sum
-    }
+    populateMovingFilter(read_value, read_array, TEMP_FILTER_WINDOW, sum);
+
     ind = 0;
     temp = read_value;
     last_time = cur_time;
@@ -53,6 +53,10 @@ float readTempSensor(){
     // Get temperature value
     if(!thermoCouple.read()){
       read_value = thermoCouple.getTemperature();
+    } else {
+      debugprintln("temp read error");
+      read_value = 999;
+      populateMovingFilter(read_value, read_array, TEMP_FILTER_WINDOW, sum);
     }
 
     // Moving averaging filter calculation
@@ -72,6 +76,21 @@ float readTempSensor(){
   }
 
   return temp;
+}
+
+/**
+ * @brief Reset moving avg filter array with given value
+ * @param value Singular value to populate the filter with
+ * @param array Moving avg filter array
+ * @param array_size Size of the array
+ * @param sum Sum of all values in array (passed by reference)
+ */
+void populateMovingFilter(float value, float array[], int array_size, float & sum){
+    sum = 0;
+    for(int i = 0; i < array_size; i++){
+      array[i] = value; // populate the array
+      sum += value; // add up the sum
+    }
 }
 
 

@@ -26,6 +26,7 @@
 #include "HWCDC.h"
 #include <Preferences.h>
 #include <U8g2_for_Adafruit_GFX.h>
+#include <WiFi.h>
 
 // ---------- IO Pin Definitions ----------
 
@@ -238,7 +239,7 @@ volatile unsigned long up_state_change_time = 0;
 volatile unsigned long ok_state_change_time = 0;
 volatile unsigned long dn_state_change_time = 0;
 // System
-float cur_temp = 0;
+float cur_temp = 30;
 int heater_pwm = 0;
 // Reflow
 bool reflow_active = false;
@@ -271,6 +272,8 @@ int buffer_tail = 0;
 int buffer_count = 0;
 
 char print_buffer[20];
+
+String mac_address; // unique hardware address
 
 reflow_profile_t reflow_profile_array[NUM_PROFILE_MAX];    
 
@@ -922,6 +925,7 @@ void settings(){
     buzzerLoop();
   }
 
+
 }
 
 /**
@@ -950,6 +954,15 @@ void about(){
 void reset(){
   preferences.clear();
   ESP.restart();
+}
+
+/**
+ * @brief Get the MAC Address
+ * 
+ */
+void getMacAddress(){
+  mac_address = WiFi.macAddress();
+  mac_address.replace(":", "");
 }
 
 void setup() {
@@ -993,6 +1006,8 @@ void setup() {
   initPidParams();
   initReflowProfiles();
   initSettings();
+
+  getMacAddress();
 
   debugprintln(" Initialization completed.");
 
