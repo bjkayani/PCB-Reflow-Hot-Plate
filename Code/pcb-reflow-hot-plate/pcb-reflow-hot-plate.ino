@@ -27,6 +27,7 @@
 #include <Preferences.h>
 #include <U8g2_for_Adafruit_GFX.h>
 #include <WiFi.h>
+#include <Adafruit_NeoPixel.h>
 
 // ---------- IO Pin Definitions ----------
 
@@ -40,6 +41,7 @@
 #define DATA_PIN    7 // MAX6675
 #define CLOCK_PIN   6 // MAX6675
 #define SELECT_PIN  5 // MAX6675
+#define RGB_LED_PIN 8
 
 // ---------- Macros ----------
 
@@ -114,6 +116,7 @@ MAX6675 thermoCouple;
 Adafruit_SSD1306 display(OLED_PIXEL_X, OLED_PIXEL_Y, &Wire, -1);
 Preferences preferences;
 U8G2_FOR_ADAFRUIT_GFX u8g2_for_adafruit_gfx;
+Adafruit_NeoPixel pixels(1, RGB_LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // ---------- Enums and Structs ----------
 
@@ -378,6 +381,7 @@ void mainMenu(){
 
     showMainMenu(select_index);
     buzzerLoop();
+    ledHeatDisplay();
   }
 
 }
@@ -987,6 +991,9 @@ void setup() {
   // Thermocouple init
   thermoCouple.begin(CLOCK_PIN, SELECT_PIN, DATA_PIN);
   thermoCouple.setSPIspeed(4000000);
+
+  // RGB LED init
+  pixels.begin();
 
   // I/O init
   pinMode(UP_BTN_PIN, INPUT);
