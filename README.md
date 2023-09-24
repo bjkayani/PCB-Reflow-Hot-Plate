@@ -50,8 +50,8 @@ The PCB is designed in KiCAD. Its a 2-layer design and it contains everything ne
 
 ### Version 1.1:
 
-- [BOM](PCB/pcb-reflow-hot-plate/bom/pcb-reflow-hot-plate_1.1.html)
-- [Gerber](PCB/pcb-reflow-hot-plate/output/pcb-reflow-hot-plate_Rev1.1.zip)
+- [BOM](PCB/pcb-reflow-hot-plate/bom/pcb-reflow-hot-plate_1.2.html)
+- [Gerber](PCB/pcb-reflow-hot-plate/output/pcb-reflow-hot-plate_Rev1.2.zip)
 
 ### Revision History
 
@@ -64,6 +64,18 @@ The PCB is designed in KiCAD. Its a 2-layer design and it contains everything ne
     - SSR supply changed to +5V
     - AC in connector mounting peg holes increased in size
     - Minor silk screen updates
+- Rev 1.2
+    - AC in connector mounting holes further widened
+    - OLED module footprint changed for newer modules
+    - Tactile switches changed to 4.5x4.5x5mm
+    - Neopixel added
+    - Stemma QT connector added
+    - SMD buzzer changed to SMD
+    - AC fuse added
+- Rev 1.3
+    - RGB LED moved down
+    - Heater and thermocouple connector rotated
+    - Thermocouple GND line grounded
 
 <img src="https://i.ibb.co/8XnHh54/pcb-reflow-hot-plate.png" width="40%"></a>
 <img src="https://i.ibb.co/NC9FkzB/Screenshot-2023-04-15-225138.png" width="40%"></a>
@@ -99,19 +111,22 @@ The latest STL and design files can be found in the CAD folder. The assembly is 
 
 | PCB (HW) | OLED Module | Code (FW) | CAD |
 | :---: | :---------: | :---: | :---: |
-| Rev 1.0 | SSD1306 0.96" 25.2x26mm <br> [AliExpress Link](https://www.aliexpress.us/item/2251832644208699.html?spm=a2g0o.order_list.order_list_main.11.21ef1802tOmkk3&gatewayAdapt=glo2usa4itemAdapt&_randl_shipto=US#nav-specification) | Rev 1.0 | Housing Top v4 <br> Housing Base v7 |
-| Rev 1.1 |  SSD1306 0.96" 27.6x27.6mm <br> [Amazon Link](https://amzn.to/43KL0ey) |  | Housing Top v5 <br> Housing Base v7 |
+| Rev 1.0 | SSD1306 0.96" 25.2x26mm <br> [AliExpress Link](https://www.aliexpress.us/item/2251832644208699.html?spm=a2g0o.order_list.order_list_main.11.21ef1802tOmkk3&gatewayAdapt=glo2usa4itemAdapt&_randl_shipto=US#nav-specification) | 1.0 | Housing Top v1 <br> Housing Base v1 |
+| Rev 1.1 |  SSD1306 0.96" 27.6x27.6mm <br> [Amazon Link](https://amzn.to/43KL0ey) | 1.0  | Housing Top v2 <br> Housing Base v1 |
+| Rev 1.2 |  SSD1306 0.96" 27.6x27.6mm <br> [Amazon Link](https://amzn.to/43KL0ey) | 1.1 |Housing Top v3 <br> Housing Base v2 <br> Light Pipe v1 |
+| Rev 1.3 |  SSD1306 0.96" 27.6x27.6mm <br> [Amazon Link](https://amzn.to/43KL0ey) | 1.1 | Housing Top v3 <br> Housing Base v2 <br> Light Pipe v2 |
 
 <br>
 
 
 ## Future Ideas
-- Add mounting holes and pogo pin body connectors for accessories such as cooling fan, external temperature probe, fume extractor
-- Make display separate from main PCB and shrink the main PCB
-- Move the buttons to the bottom of the display
-- Increase the size of the display to ~1.5in
-- Switch to DC heater with thinner hot plate and USB-C PD (100 Watts)
-- Switch to a square heating element
-- Add integrated active cooling that blows air parallel to the hot plate
-- Add multiple sensing options (thermocouple, thermistor etc.)
-- Add AC protection fuse
+- [ ] Add mounting holes and pogo pin body connectors for accessories such as cooling fan, external temperature probe, fume extractor
+- [ ] Make display separate from main PCB and shrink the main PCB
+- [ ] Move the buttons to the bottom of the display
+- [ ] Increase the size of the display to ~1.5in
+- [ ] Switch to DC heater with thinner hot plate and USB-C PD (100 Watts)
+- [ ] Switch to a square heating element
+- [ ] Add integrated active cooling that blows air parallel to the hot plate
+- [ ] Add multiple sensing options (thermocouple, thermistor etc.)
+- [x] Add AC protection fuse
+- [ ] Protection for reverse wired thermocouple
