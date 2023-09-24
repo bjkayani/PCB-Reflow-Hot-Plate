@@ -45,8 +45,8 @@
 
 // ---------- Macros ----------
 
-#define FW_VERSION            1.0
-#define HW_VERSION            1.0
+#define FW_VERSION            1.1
+#define HW_VERSION            1.2
 // Oled
 #define OLED_SCREEN_ADDRESS   0x3C // I2C address
 #define OLED_PIXEL_X          128
@@ -59,6 +59,7 @@
 #define TEMP_UPDATE_INTERVAL  500 // temperature read interval in mS
 #define MIN_TEMP              30
 #define MAX_TEMP              260
+#define SAFE_TEMP             70
 // Setting change steps
 #define SET_TEMP_STEP         5
 #define PID_PARAMETER_STEP    0.1
@@ -87,6 +88,7 @@
 #define NUM_SETTING_MAX       20
 #define START_UP_SPLASH_TIME  2000
 #define MAX_DISPLAY_LENGTH    20 
+#define LED_BRIGHTNESS        150
 // Error checking
 #define BUFFER_TIME               30 // buffer time in seconds
 #define BUFFER_SIZE               ((BUFFER_TIME * 1000) / ERROR_CHECK_INTERVAL)
@@ -180,6 +182,12 @@ enum settings_state_t {
 enum op_mode_t {
   REFLOW = 0,
   HEAT
+};
+
+enum color_t {
+    RED,
+    GREEN,
+    BLUE
 };
 
 /**
@@ -381,7 +389,7 @@ void mainMenu(){
 
     showMainMenu(select_index);
     buzzerLoop();
-    ledHeatDisplay();
+    ledSetColor(BLUE, LED_BRIGHTNESS);
   }
 
 }
@@ -509,6 +517,7 @@ void reflow(){
     buzzerLoop();
     errorCheckLoop(reflow_set_temp, reflow_active);
     heaterPwmLoop();
+    ledHeatDisplay(cur_temp, LED_BRIGHTNESS);
   }
 }
 
@@ -613,6 +622,7 @@ void heat(){
     buzzerLoop();
     errorCheckLoop(heat_set_temp, heat_active);
     heaterPwmLoop();
+    ledHeatDisplay(cur_temp, LED_BRIGHTNESS);
   }
 }
 
@@ -1020,7 +1030,7 @@ void setup() {
 
   buzzerBeepBlocking(START_UP_BEEP);
   showSplashScreen(START_UP_SPLASH_TIME);
-
+  
   mainMenu(); // entry point
 
 }
