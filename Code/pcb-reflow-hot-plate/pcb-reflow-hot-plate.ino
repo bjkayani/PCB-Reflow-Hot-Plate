@@ -28,6 +28,9 @@
 #include <U8g2_for_Adafruit_GFX.h>
 #include <WiFi.h>
 #include <Adafruit_NeoPixel.h>
+#include <ESPAsyncWebServer.h>
+#include <SPIFFS.h>
+#include <ArduinoJson.h>
 
 // ---------- IO Pin Definitions ----------
 
@@ -190,6 +193,14 @@ enum color_t {
     BLUE
 };
 
+enum web_event_t{
+  WEB_EVENT_NONE = 0,
+  WEB_EVENT_HEAT_ON,
+  WEB_EVENT_HEAT_OFF,
+
+  WEB_EVENT_NUM_ITEMS
+};
+
 /**
  * Struct to save reflow profiles
  * Point of change in the profile will be saved
@@ -325,6 +336,8 @@ const buzzer_sequence_t buzzer_timeout_seq = {200, 200, 2, true};
 const buzzer_sequence_t buzzer_reflow_complete_seq = {200, 200, 2, true};
 const buzzer_sequence_t buzzer_high_temp_error_seq = {500, 500, 50, true};
 const buzzer_sequence_t buzzer_heat_up_error_seq = {200, 200, 10, true};
+
+web_event_t web_event = WEB_EVENT_NONE;
 
 // ---------- Control Functions ----------
 
@@ -598,11 +611,36 @@ void heat(){
           heat_active = false;
           heater_pwm = 0;
           debugprintln("heating stopped");
+          update_web_start_stop("stop");
         } else if (!heat_up_error && !high_temp_error) {
           heat_active = true;
           heat_on_time = millis();
           debugprintln("heating started");
+          update_web_start_stop("start");
         }
+        break;
+      default:
+        break;
+    }
+
+    switch(web_event){
+      case WEB_EVENT_HEAT_ON:
+        if (!heat_up_error && !high_temp_error) {
+          buzzerBeep(CLICK_BEEP);
+          heat_active = true;
+          heat_on_time = millis();
+          debugprintln("web: heating started");
+        }
+        web_event = WEB_EVENT_NONE;
+        break;
+      case WEB_EVENT_HEAT_OFF:
+        if(heat_active) {
+          buzzerBeep(CLICK_BEEP);
+          heat_active = false;
+          heater_pwm = 0;
+          debugprintln("web: heating stopped");
+        }
+        web_event = WEB_EVENT_NONE;
         break;
       default:
         break;
@@ -1030,6 +1068,12 @@ void setup() {
 
   buzzerBeepBlocking(START_UP_BEEP);
   showSplashScreen(START_UP_SPLASH_TIME);
+
+  // Connect to WiFi
+  if(init_wifi()){
+    // Initialize the webserver if connected to WiFi
+    init_webserver();
+  }
   
   mainMenu(); // entry point
 

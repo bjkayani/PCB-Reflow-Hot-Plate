@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PCB Reflow Hot Plate</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <!-- Bootstrap Font Icon CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a href="#" class="navbar-brand">PCB Reflow Hot Plate</a>
+            <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <div class="navbar-nav ms-auto">
+                    <a href="#" class="nav-item nav-link">Home</a>
+                    <a href="#" class="nav-item nav-link">Settings</a>
+                    <a href="#" class="nav-item nav-link">About</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mt-3">
+            <div class="col d-grid">
+                <button type="button" class="btn btn-primary btn-lg" id="btnReflow">Reflow</button>
+            </div>
+            <div class="col d-grid">
+                <button type="button" class="btn btn-primary btn-lg" id="btnHeat">Heat</button>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col">
+                <canvas id="temperatureGraph" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col d-grid">
+                <button type="button" class="btn btn-danger btn-lg" id="btnTemperature" disabled></button>
+            </div>
+            <div class="col d-grid">
+                <button type="button" class="btn btn-primary btn-lg" id="btnStartStop">Start</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-4 g-3">
+                <div class="input-group">
+                    <label class="input-group-text">Kp</label>
+                    <input type="text" class="form-control">
+                    <button type="button" class="btn btn-secondary"><i class="bi-caret-up-fill"></i></button>
+                    <button type="button" class="btn btn-secondary"><i class="bi-caret-down-fill"></i></button>
+                </div>
+            </div>
+            <div class="col-sm-4 g-3">
+                <div class="input-group">
+                    <label class="input-group-text">Ki</label>
+                    <input type="text" class="form-control">
+                    <button type="button" class="btn btn-secondary"><i class="bi-caret-up-fill"></i></button>
+                    <button type="button" class="btn btn-secondary"><i class="bi-caret-down-fill"></i></button>
+                </div>
+            </div>
+            <div class="col-sm-4 g-3">
+                <div class="input-group">
+                    <label class="input-group-text">Kd</label>
+                    <input type="text" class="form-control">
+                    <button type="button" class="btn btn-secondary"><i class="bi-caret-up-fill"></i></button>
+                    <button type="button" class="btn btn-secondary"><i class="bi-caret-down-fill"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-sm-12">
+                <div class="input-group">
+                    <label class="input-group-text">Set Temperature</label>
+                    <input type="text" class="form-control" id="setTemperatureBox">
+                    <button type="button" class="btn btn-secondary" id="setTemperatureUpBtn"><i class="bi-caret-up-fill"></i></button>
+                    <button type="button" class="btn btn-secondary" id="setTemperatureDnBtn"><i class="bi-caret-down-fill"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col input-group">
+                <label class="input-group-text">Reflow Profile</label>
+                <select class="form-select">
+                    <option selected>Leaded</option>
+                    <option>Lead Free</option>
+                </select>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.27.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@0.1.1"></script>
+    <!-- <script src="app.js"></script> -->
+
+    <script>
+        let temperatureData = [];
+        const xAxisWidth = 500000
+        const graphUpdateInterval = 1000
+
+        const ctx = document.getElementById("temperatureGraph").getContext('2d');
+        const temperatureElement = document.getElementById('btnTemperature');
+        const startStopBtn = document.getElementById("btnStartStop");
+        const setTemperatureBox = document.getElementById("setTemperatureBox");
+        const setTemperatureUpBtn= document.getElementById("setTemperatureUpBtn");
+        const setTemperatureDnBtn= document.getElementById("setTemperatureDnBtn");
+        var setTemperature = 30;
+
+        const graphInitTime = new Date().getTime()
+        const temperatureGraph = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Temperature',
+                    data: temperatureData,
+                    borderColor: 'red',
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            displayFormats: {
+                                millisecond: 'mm:ss',
+                                second: 'mm:ss',
+                                minute: 'mm:ss' 
+                            }
+                        },
+                        min: graphInitTime,
+                        suggestedMax: graphInitTime + xAxisWidth,
+                        ticks:{
+                            stepSize: 60
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Temperature',
+                        },
+                    }
+                }
+            }
+        });
+        
+        function updateGraph() {
+            
+            // Make a GET request to fetch both current and set temperatures from your ESP32 web server.
+            fetch('/updateGraph')
+                .then(response => response.json())
+                .then(data => {
+                    // Parse the current and set temperature values from the response.
+                    const temperature = parseFloat(data.temperature);
+
+                    if (!isNaN(temperature)) {
+
+                        temperatureElement.textContent = temperature.toFixed(1) + " °C";
+
+                        const timestamp = new Date().getTime();
+
+                        temperatureGraph.data.datasets[0].data.push({
+                            x: timestamp,
+                            y: temperature
+                        });
+                        
+                        temperatureGraph.options.scales.x.suggestedMax = temperatureData[0].x + xAxisWidth;
+                        if (temperatureData.length > xAxisWidth/graphUpdateInterval){
+                            temperatureGraph.options.scales.x.min = timestamp - xAxisWidth;
+                        }
+
+                        const temperatureMax = temperatureData.reduce((prevMax, currentObj) => {
+                            const currentValue = currentObj.y;
+                            return Math.max(prevMax, currentValue);
+                            }, Number.NEGATIVE_INFINITY);
+
+                        const temperatureMin = temperatureData.reduce((prevMin, currentObj) => {
+                            const currentValue = currentObj.y;
+                            return Math.min(prevMin, currentValue);
+                            }, Number.POSITIVE_INFINITY);
+
+                        temperatureGraph.options.scales.y.max = temperatureMax + 3.5;
+                        temperatureGraph.options.scales.y.min = temperatureMin - 0.5;
+
+                        temperatureGraph.update();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching temperature:', error);
+                    temperatureElement.textContent = 'N/A'
+                });
+
+        }
+
+        setInterval(updateGraph, graphUpdateInterval);
+        updateGraph();
+
+
+        startStopBtn.addEventListener("click", function () {
+
+            var startStopCommand = ""
+            if (startStopBtn.textContent == "Start") {
+                startStopBtn.textContent = "Stop";
+                startStopBtn.classList.remove("btn-primary");
+                startStopBtn.classList.add("btn-danger");
+                startStopCommand = "start";
+            } else if ((startStopBtn.textContent == "Stop")) {
+                startStopBtn.textContent = "Start";
+                startStopBtn.classList.remove("btn-danger");
+                startStopBtn.classList.add("btn-primary");
+                startStopCommand = "stop";
+            }
+
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "/buttonPress?value="+startStopCommand, true);
+            xhttp.send();
+        });
+
+        if (!!window.EventSource) {
+            var source = new EventSource('/events');
+            
+            source.addEventListener('open', function(e) {
+                console.log("Events Connected");
+            }, false);
+
+            source.addEventListener('error', function(e) {
+                if (e.target.readyState != EventSource.OPEN) {
+                console.log("Events Disconnected");
+                }
+            }, false);
+            
+            source.addEventListener('message', function(e) {
+                console.log("message", e.data);
+            }, false);
+            
+            source.addEventListener('update', function(e) {
+                console.log("update", e.data);
+                var myObj = JSON.parse(e.data);
+
+                 // Perform different actions based on keys and values
+                for (var key in myObj) {
+                    if (myObj.hasOwnProperty(key)) {
+                        var value = myObj[key];
+                        
+                        // Example: Check if the key is "action" and perform an action based on its value
+                        if (key === "startStop") {
+                            if (value === "start") {
+                                startStopBtn.textContent = "Stop";
+                                startStopBtn.classList.remove("btn-primary");
+                                startStopBtn.classList.add("btn-danger");
+                            } else if (value === "stop") {
+                                startStopBtn.textContent = "Start";
+                                startStopBtn.classList.remove("btn-danger");
+                                startStopBtn.classList.add("btn-primary");    
+                            }
+                        }
+                        
+                        // Example: Check other keys and values and perform actions accordingly
+                        // if (key === "anotherKey") {
+                        //     // Perform an action based on another key and its value
+                        // }
+                    }
+                }
+                
+                
+            }, false);
+        }
+
+        setTemperatureUpBtn.addEventListener("click", function () {
+            setTemperature += 5;
+            if (setTemperature > 260 ){
+                setTemperature = 260;
+            } else {
+                setTemperatureBox.value = setTemperature;
+                updateSetTemperature(setTemperature);
+            }
+            
+        });
+
+        setTemperatureDnBtn.addEventListener("click", function () {
+            setTemperature -= 5;
+            if (setTemperature < 30 ){
+                setTemperature = 30;
+            } else {
+                setTemperatureBox.value = setTemperature;
+                updateSetTemperature(setTemperature);
+            }
+        });
+
+        function updateSetTemperature(temperature){
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "/setTemp?value="+temperature, true);
+            xhttp.send();
+        }
+
+
+    </script>
+</body>
+</html>

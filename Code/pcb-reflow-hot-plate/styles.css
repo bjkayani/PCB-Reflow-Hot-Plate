@@ -1,0 +1,66 @@
+/* Global Styles */
+body {
+    font-family: Arial, sans-serif;
+}
+
+/* Top Bar Styles */
+.navbar {
+    color: #fff;
+}
+
+/* Mode Selection Buttons */
+.btn-primary {
+    /* background-color: #007bff; */
+    color: #fff;
+    margin-top: 10px;
+}
+
+/* Temperature Chart Styles */
+#temperatureChart {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Temperature Display and On/Off Button Styles */
+.btn-success {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.form-control {
+    margin-top: 10px;
+}
+
+/* Kp, Ki, Kd Input Styles */
+.form-control {
+    margin-top: 10px;
+}
+
+/* Mode Options Styles */
+#modeOptions {
+    margin-top: 20px;
+}
+
+/* Reflow Mode Options Styles */
+#reflowOptions {
+    display: none;
+}
+
+/* Reflow Profile Dropdown Styles */
+#reflowProfile {
+    margin-bottom: 10px;
+}
+
+/* Profile Points List Styles */
+#profilePoints {
+    /* Add your styles for the list of textboxes here */
+}
+
+.active-button {
+    background-color: #007bff;
+    color: #fff;
+}
+/* Add CSS styles for the On button */
+.active-button.on-button {
+    background-color: #28a745;
+}

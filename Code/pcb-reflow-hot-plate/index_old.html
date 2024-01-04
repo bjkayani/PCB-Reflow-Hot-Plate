@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PCB Reflow Hot Plate</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+
+        #container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        #temperature-graph {
+            width: 100%;
+            height: 500px;
+            margin-top: 20px;
+        }
+
+        #current-temperature {
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>PCB Reflow Hot Plate</h1>
+
+        <!-- Dynamic Temperature Display -->
+        <p>Current Temperature: <span id="current-temperature">N/A</span></p>
+
+        <!-- Temperature Graph Container -->
+        <canvas id="temperature-graph"></canvas>
+    </div>
+
+    <script>
+        // JavaScript code for displaying the current temperature, periodically fetching temperature data, and updating the temperature graph using Highcharts.
+
+        const currentTemperatureElement = document.getElementById('current-temperature');
+        let temperatureData = [];
+        
+        const temperatureChart = new Chart('temperature-graph', {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Temperature',
+                    data: temperatureData,
+                    borderColor: 'red', // Set the line color to red
+                    fill: false,
+                    pointStyle: 'line' // Remove the markers for data points
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: false, // Disable animation when new data points are added
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        ticks: {
+                            callback: function(value, index, values) {
+                                // Format x-axis tick labels to display minutes and seconds
+                                const date = new Date(value);
+                                const minutes = date.getUTCMinutes();
+                                const seconds = date.getUTCSeconds();
+                                return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                            },
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Temperature (°C)'
+                        },
+                        min: 0,
+                        max: 260
+                    }
+                }
+            }
+        });
+
+        function updateTemperature() {
+            // Make a GET request to fetch both current and set temperatures from your ESP32 web server.
+            // Use the "/update" API endpoint.
+            // Replace 'your_api_endpoint' with the actual URL for fetching temperature data.
+            fetch('/update')
+                .then(response => response.json())
+                .then(data => {
+                    // Parse the current and set temperature values from the response.
+                    const currentTemperature = parseFloat(data.currentTemperature);
+                    const setTemperature = parseFloat(data.setTemperature);
+
+                    if (!isNaN(currentTemperature) && !isNaN(setTemperature)) {
+                        currentTemperatureElement.textContent = currentTemperature.toFixed(2) + " °C";
+
+                       // Create a timestamp for the current data point.
+                       const timestamp = new Date().getTime();
+
+                        // Add the data point to the chart's dataset.
+                        temperatureChart.data.datasets[0].data.push({
+                            x: timestamp,
+                            y: currentTemperature
+                        });
+
+                        // Limit the data series to the last 10 minutes.
+                        // const tenMinutesAgo = timestamp - 60000;
+                        // temperatureChart.data.datasets[0].data = temperatureChart.data.datasets[0].data.filter(
+                        //     point => point.x >= tenMinutesAgo
+                        // );
+
+                        // Update the chart.
+                        temperatureChart.update();
+                    } else {
+                        currentTemperatureElement.textContent = 'N/A';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching temperature:', error);
+                    currentTemperatureElement.textContent = 'N/A';
+                });
+        }
+
+        // Periodically update the temperature every 1 second.
+        setInterval(updateTemperature, 1000);
+
+        // Initial temperature update when the page loads.
+        updateTemperature();
+    </script>
+</body>
+</html>
